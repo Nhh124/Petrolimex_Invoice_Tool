@@ -4,6 +4,18 @@ import sys
 import subprocess
 from datetime import datetime, timedelta
 
+def _ensure_desktop():
+    """Đảm bảo thread kết nối đúng vào interactive desktop Default của người dùng"""
+    try:
+        import ctypes
+        if hasattr(ctypes, 'windll'):
+            user32 = ctypes.windll.user32
+            hdesk = user32.OpenDesktopW('Default', 0, False, 0x10000000)
+            if hdesk:
+                user32.SetThreadDesktop(hdesk)
+    except Exception:
+        pass
+
 def cleanup_zombie_outlook():
     """Dọn dẹp các tiến trình Outlook chạy ngầm bị treo (-Embedding)"""
     try:
@@ -62,6 +74,7 @@ def parse_email_content(body_text, html_text=""):
 
 class OutlookReader:
     def __init__(self):
+        _ensure_desktop()
         import pythoncom
         import win32com.client
         pythoncom.CoInitialize()
@@ -137,9 +150,10 @@ class OutlookReader:
         - limit: Giới hạn số lượng email (None hoặc 0 = không giới hạn)
         """
         def log(msg):
-            print(msg)
             if log_cb:
                 log_cb(msg)
+            else:
+                print(msg)
 
         inboxes = self.get_inbox_folders(mailbox_name)
         if not inboxes:

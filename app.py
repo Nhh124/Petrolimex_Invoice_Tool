@@ -165,6 +165,12 @@ def get_status():
 def get_mailboxes():
     default_boxes = ['vantai povina', 'Phòng kế toán', 'all']
     try:
+        import ctypes
+        if hasattr(ctypes, 'windll'):
+            user32 = ctypes.windll.user32
+            hdesk = user32.OpenDesktopW('Default', 0, False, 0x10000000)
+            if hdesk:
+                user32.SetThreadDesktop(hdesk)
         import win32com.client
         app_obj = win32com.client.GetActiveObject('Outlook.Application')
         ns = app_obj.GetNamespace('MAPI')
