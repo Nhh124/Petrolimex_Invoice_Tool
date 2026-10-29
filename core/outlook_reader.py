@@ -20,22 +20,22 @@ def parse_email_content(body_text, html_text=""):
     clean_body = body_text.replace('\xa0', ' ')
     
     # Tìm Mẫu số
-    m_mau = re.search(r'Mẫu\s*số\s*:\s*([^\r\n<]+)', clean_body, re.IGNORECASE)
+    m_mau = re.search(r'(?:Mẫu|Mau)\s*s(?:ố|o)\s*:\s*([^\r\n<]+)', clean_body, re.IGNORECASE)
     mau_so = m_mau.group(1).strip() if m_mau else ""
     mau_so = re.sub(r'<[^>]+>', '', mau_so).strip()
 
     # Tìm Ký hiệu
-    m_kh = re.search(r'Ký\s*hiệu\s*:\s*([^\r\n<]+)', clean_body, re.IGNORECASE)
+    m_kh = re.search(r'(?:Ký|Ky)\s*hi(?:ệ|e)u\s*:\s*([^\r\n<]+)', clean_body, re.IGNORECASE)
     ky_hieu = m_kh.group(1).strip() if m_kh else ""
     ky_hieu = re.sub(r'<[^>]+>', '', ky_hieu).strip()
 
     # Tìm Số hóa đơn
-    m_shd = re.search(r'Số\s*hóa\s*đơn\s*:\s*([^\r\n<]+)', clean_body, re.IGNORECASE)
+    m_shd = re.search(r'(?:Số|So)\s*(?:hóa\s*đơn|hoa\s*don|HĐ|HD)\s*:\s*([^\r\n<]+)', clean_body, re.IGNORECASE)
     so_hd = m_shd.group(1).strip() if m_shd else ""
     so_hd = re.sub(r'<[^>]+>', '', so_hd).strip()
 
     # Tìm Mã tra cứu (Fkey)
-    m_mtc = re.search(r'Mã\s*tra\s*cứu\s*:\s*([^\r\n<]+)', clean_body, re.IGNORECASE)
+    m_mtc = re.search(r'(?:Mã|Ma)\s*tra\s*c(?:ứ|u)u\s*:\s*([^\r\n<]+)', clean_body, re.IGNORECASE)
     ma_tra_cuu = m_mtc.group(1).strip() if m_mtc else ""
     ma_tra_cuu = re.sub(r'<[^>]+>', '', ma_tra_cuu).strip()
 
@@ -151,20 +151,28 @@ class OutlookReader:
                             received_time.year, received_time.month, received_time.day,
                             received_time.hour, received_time.minute, received_time.second
                         )
-                        # Nếu thư mới hơn end_dt thì bỏ qua sang thư tiếp theo
+                        # Kiểm tra ngày: Nếu ngoài khoảng start_dt và end_dt thì bỏ qua sang thư tiếp theo
                         if end_dt and item_dt > end_dt:
                             continue
-                        # Vì đã sắp xếp mới nhất lên đầu, nếu thư cũ hơn start_dt thì dừng lại
                         if start_dt and item_dt < start_dt:
-                            print(f"Đã duyệt đến mốc ngày {item_dt.strftime('%d/%m/%Y')}, dừng quét.")
-                            break
+                            continue
                     except Exception:
                         pass
 
                 subj = getattr(item, 'Subject', '') or ''
                 sender = getattr(item, 'SenderEmailAddress', '') or ''
 
-                if 'petrolimex' in subj.lower() or 'petrolimex' in sender.lower() or 'hóa đơn' in subj.lower():
+                subj_lower = subj.lower()
+                sender_lower = sender.lower()
+                is_petrol = (
+                    'petrolimex' in subj_lower or 
+                    'petrolimex' in sender_lower or 
+                    'hóa đơn' in subj_lower or 
+                    'hoa don' in subj_lower or
+                    'hoadon' in sender_lower
+                )
+
+                if is_petrol:
                     body = getattr(item, 'Body', '') or ''
                     html = getattr(item, 'HTMLBody', '') or ''
 
