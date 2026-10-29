@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Báo Cáo Hóa Đơn Điện Tử Petrolimex - Thép POVINA</title>
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- FontAwesome 6 -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background-color: #f8fafc;
+            color: #1e293b;
+        }
+        .navbar-brand span {
+            letter-spacing: 0.5px;
+        }
+        .card-kpi {
+            transition: all 0.2s ease;
+            border-radius: 12px;
+        }
+        .card-kpi:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.06) !important;
+        }
+        .kpi-icon {
+            width: 48px;
+            height: 48px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 10px;
+        }
+        .plate-badge {
+            background-color: #f1f5f9;
+            color: #0f172a;
+            border: 1px solid #cbd5e1;
+            font-weight: 700;
+            padding: 4px 8px;
+            border-radius: 6px;
+            letter-spacing: 0.5px;
+            display: inline-block;
+        }
+        .fuel-badge {
+            font-weight: 600;
+            color: #b45309;
+            background-color: #fef3c7;
+            padding: 3px 8px;
+            border-radius: 6px;
+        }
+        .custom-table th {
+            font-weight: 600;
+            text-transform: uppercase;
+            font-size: 0.75rem;
+            letter-spacing: 0.5px;
+            padding: 12px 14px;
+            background-color: #f8fafc;
+        }
+        .custom-table td {
+            padding: 12px 14px;
+            font-size: 0.88rem;
+        }
+    </style>
+</head>
+<body>
+
+<!-- Navbar -->
+<nav class="navbar navbar-expand-lg navbar-dark bg-primary shadow-sm sticky-top">
+    <div class="container-fluid px-3 px-lg-4">
+        <a class="navbar-brand fw-bold d-flex align-items-center" href="#">
+            <i class="fa-solid fa-gas-pump me-2 fs-4 text-warning"></i>
+            <span>PETROLIMEX INVOICE PORTAL</span>
+        </a>
+        <div class="d-flex align-items-center gap-2">
+            <span class="badge bg-light text-primary d-none d-md-inline-block px-3 py-2">
+                <i class="fa-solid fa-building me-1"></i> CÔNG TY CỔ PHẦN THÉP POVINA
+            </span>
+            <a href="data/Bao_Cao_Hoa_Don_Petrolimex.xlsx" class="btn btn-success btn-sm fw-bold shadow-sm" download>
+                <i class="fa-solid fa-file-excel me-1"></i> Tải File Excel
+            </a>
+            <a href="https://github.com/Nhh124/Petrolimex_Invoice_Tool" target="_blank" class="btn btn-outline-light btn-sm">
+                <i class="fa-brands fa-github me-1"></i> GitHub
+            </a>
+        </div>
+    </div>
+</nav>
+
+<div class="container-fluid px-3 px-lg-4 py-4">
+    <!-- Header Title -->
+    <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-2">
+        <div>
+            <h4 class="fw-bold mb-1 text-dark">
+                <i class="fa-solid fa-chart-line text-primary me-2"></i>Bảng Tổng Hợp Chi Phí Xăng Dầu
+            </h4>
+            <div class="text-muted small">
+                Tự động đồng bộ từ Outlook &bull; Chuẩn hóa hóa đơn điện tử Thông tư 78
+            </div>
+        </div>
+        <div class="text-muted small">
+            <i class="fa-regular fa-clock me-1"></i> Cập nhật gần nhất: <span id="lastUpdated" class="fw-bold">Hôm nay</span>
+        </div>
+    </div>
+
+    <!-- 4 KPI Cards -->
+    <div class="row g-3 mb-4">
+        <div class="col-6 col-lg-3">
+            <div class="card card-kpi border-0 shadow-sm border-start border-primary border-4 p-3 bg-white h-100">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="text-muted small fw-semibold">TỔNG HÓA ĐƠN</div>
+                        <div class="h3 fw-bold text-primary mb-0 mt-1" id="kpiCount">0</div>
+                    </div>
+                    <div class="kpi-icon bg-primary bg-opacity-10 text-primary">
+                        <i class="fa-solid fa-file-invoice fs-5"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-lg-3">
+            <div class="card card-kpi border-0 shadow-sm border-start border-success border-4 p-3 bg-white h-100">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="text-muted small fw-semibold">TỔNG TIỀN THANH TOÁN</div>
+                        <div class="h3 fw-bold text-success mb-0 mt-1" id="kpiAmount">0 ₫</div>
+                    </div>
+                    <div class="kpi-icon bg-success bg-opacity-10 text-success">
+                        <i class="fa-solid fa-money-bill-wave fs-5"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-lg-3">
+            <div class="card card-kpi border-0 shadow-sm border-start border-warning border-4 p-3 bg-white h-100">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="text-muted small fw-semibold">TỔNG NHIÊN LIỆU (LÍT)</div>
+                        <div class="h3 fw-bold text-warning mb-0 mt-1" id="kpiVolume">0 L</div>
+                    </div>
+                    <div class="kpi-icon bg-warning bg-opacity-10 text-warning">
+                        <i class="fa-solid fa-droplet fs-5"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-lg-3">
+            <div class="card card-kpi border-0 shadow-sm border-start border-info border-4 p-3 bg-white h-100">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="text-muted small fw-semibold">SỐ XE ĐÃ ĐỔ</div>
+                        <div class="h3 fw-bold text-info mb-0 mt-1" id="kpiPlates">0</div>
+                    </div>
+                    <div class="kpi-icon bg-info bg-opacity-10 text-info">
+                        <i class="fa-solid fa-truck fs-5"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filter & Search Toolbar -->
+    <div class="card border-0 shadow-sm mb-4 rounded-3">
+        <div class="card-body p-3">
+            <div class="row g-2 align-items-center">
+                <div class="col-md-5 col-lg-4">
+                    <div class="input-group input-group-sm">
+                        <span class="input-group-text bg-white border-end-0">
+                            <i class="fa-solid fa-magnifying-glass text-muted"></i>
+                        </span>
+                        <input type="text" class="form-control border-start-0" id="searchInput" placeholder="Tìm biển số xe, số HĐ, mặt hàng..." onkeyup="filterInvoices()">
+                    </div>
+                </div>
+                <div class="col-6 col-md-3 col-lg-3">
+                    <select class="form-select form-select-sm" id="vehicleFilter" onchange="filterInvoices()">
+                        <option value="">-- Tất cả biển số xe --</option>
+                    </select>
+                </div>
+                <div class="col-6 col-md-2 col-lg-2">
+                    <select class="form-select form-select-sm" id="fuelFilter" onchange="filterInvoices()">
+                        <option value="">-- Tất cả mặt hàng --</option>
+                    </select>
+                </div>
+                <div class="col-12 col-md-2 col-lg-3 d-flex justify-content-end">
+                    <button class="btn btn-outline-secondary btn-sm" onclick="resetFilters()">
+                        <i class="fa-solid fa-filter-circle-xmark me-1"></i> Xóa Bộ Lọc
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Data Table Card -->
+    <div class="card border-0 shadow-sm rounded-3">
+        <div class="card-header bg-white py-3 border-0 d-flex justify-content-between align-items-center">
+            <h6 class="fw-bold mb-0 text-dark">
+                <i class="fa-solid fa-list-check text-primary me-2"></i>Chi Tiết Hóa Đơn (<span id="filteredCount">0</span>)
+            </h6>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0 custom-table">
+                <thead class="text-secondary">
+                    <tr>
+                        <th class="text-center" style="width: 50px;">STT</th>
+                        <th>Ngày HĐ</th>
+                        <th>Ký Hiệu - Số HĐ</th>
+                        <th>Biển Số Xe</th>
+                        <th>Mặt Hàng</th>
+                        <th class="text-end">Số Lượng</th>
+                        <th class="text-end">Đơn Giá</th>
+                        <th class="text-end">Tổng Tiền (VNĐ)</th>
+                        <th>Cửa Hàng / Điểm Bán</th>
+                        <th class="text-center">Mã Tra Cứu</th>
+                        <th class="text-center" style="width: 140px;">Chứng Từ</th>
+                    </tr>
+                </thead>
+                <tbody id="invoiceTableBody">
+                    <tr>
+                        <td colspan="11" class="text-center py-5 text-muted">
+                            <i class="fa-solid fa-spinner fa-spin me-2"></i> Đang tải dữ liệu...
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Xem PDF -->
+<div class="modal fade" id="pdfModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered" style="height: 90vh;">
+        <div class="modal-content h-100 shadow">
+            <div class="modal-header py-2 bg-primary text-white">
+                <h6 class="modal-title fw-bold" id="pdfModalTitle">Xem Hóa Đơn Điện Tử</h6>
+                <div class="d-flex gap-2">
+                    <a id="btnOpenNewTab" href="#" target="_blank" class="btn btn-light btn-sm text-primary py-0">
+                        <i class="fa-solid fa-arrow-up-right-from-square me-1"></i> Mở Tab Mới
+                    </a>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+            </div>
+            <div class="modal-body p-0 h-100 bg-secondary bg-opacity-10">
+                <iframe id="pdfFrame" src="" class="w-100 h-100 border-0"></iframe>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Bootstrap 5 JS -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+<script>
+let rawInvoices = [];
+
+function formatCurrency(val) {
+    if (!val) return "0 ₫";
+    return Number(val).toLocaleString("vi-VN") + " ₫";
+}
+
+function formatVolume(val) {
+    if (!val) return "0 L";
+    return Number(val).toLocaleString("vi-VN", { minimumFractionDigits: 2, maximumFractionDigits: 3 }) + " L";
+}
+
+// Load data from invoices.json
+async function initData() {
+    try {
+        const resp = await fetch('data/invoices.json?t=' + new Date().getTime());
+        if (!resp.ok) throw new Error("HTTP error " + resp.status);
+        rawInvoices = await resp.json();
+    } catch (e) {
+        console.warn("Không tải được data/invoices.json, sử dụng dữ liệu mặc định:", e);
+        rawInvoices = [];
+    }
+
+    populateDropdowns();
+    renderData(rawInvoices);
+}
+
+function populateDropdowns() {
+    const vehicles = new Set();
+    const fuels = new Set();
+
+    rawInvoices.forEach(inv => {
+        if (inv.bien_so) vehicles.add(inv.bien_so);
+        if (inv.ten_hang) fuels.add(inv.ten_hang);
+    });
+
+    const vSelect = document.getElementById("vehicleFilter");
+    vehicles.forEach(v => {
+        const opt = document.createElement("option");
+        opt.value = v;
+        opt.textContent = v;
+        vSelect.appendChild(opt);
+    });
+
+    const fSelect = document.getElementById("fuelFilter");
+    fuels.forEach(f => {
+        const opt = document.createElement("option");
+        opt.value = f;
+        opt.textContent = f;
+        fSelect.appendChild(opt);
+    });
+}
+
+function renderData(invoices) {
+    // KPI metrics
+    const totalCount = invoices.length;
+    const totalAmount = invoices.reduce((s, i) => s + (Number(i.tong_tien) || 0), 0);
+    const totalVolume = invoices.reduce((s, i) => s + (Number(i.so_luong) || 0), 0);
+    const uniquePlates = new Set(invoices.map(i => i.bien_so).filter(Boolean)).size;
+
+    document.getElementById("kpiCount").textContent = totalCount;
+    document.getElementById("kpiAmount").textContent = formatCurrency(totalAmount);
+    document.getElementById("kpiVolume").textContent = formatVolume(totalVolume);
+    document.getElementById("kpiPlates").textContent = uniquePlates;
+    document.getElementById("filteredCount").textContent = totalCount;
+
+    if (invoices.length > 0 && invoices[0].ngay_hd) {
+        document.getElementById("lastUpdated").textContent = invoices[0].ngay_hd;
+    }
+
+    const tbody = document.getElementById("invoiceTableBody");
+    if (invoices.length === 0) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="11" class="text-center py-5 text-muted">
+                    <i class="fa-solid fa-folder-open fs-2 mb-2 text-secondary"></i>
+                    <div>Không tìm thấy hóa đơn nào phù hợp với bộ lọc.</div>
+                </td>
+            </tr>
+        `;
+        return;
+    }
+
+    let rows = "";
+    invoices.forEach((inv, idx) => {
+        const plateHtml = inv.bien_so 
+            ? `<span class="plate-badge">${inv.bien_so}</span>` 
+            : `<span class="text-muted small">Chưa rõ</span>`;
+
+        let actionHtml = "";
+        if (inv.pdf_url) {
+            actionHtml += `
+                <button class="btn btn-sm btn-outline-primary py-0 px-2 me-1" onclick="openPdfModal('${inv.pdf_url}', '${inv.so_hd}')">
+                    <i class="fa-regular fa-file-pdf me-1"></i>PDF
+                </button>
+            `;
+        }
+        if (inv.xml_url) {
+            actionHtml += `
+                <a class="btn btn-sm btn-outline-secondary py-0 px-2" href="${inv.xml_url}" download>
+                    <i class="fa-regular fa-file-code me-1"></i>XML
+                </a>
+            `;
+        }
+        if (!actionHtml) {
+            actionHtml = `<span class="text-muted small">Chưa có</span>`;
+        }
+
+        rows += `
+            <tr>
+                <td class="text-center text-muted fw-bold">${idx + 1}</td>
+                <td><span class="small fw-semibold">${inv.ngay_hd || ''}</span></td>
+                <td><span class="badge bg-light text-dark border">${inv.ky_hieu || ''}-${inv.so_hd || ''}</span></td>
+                <td>${plateHtml}</td>
+                <td><span class="fuel-badge small">${inv.ten_hang || 'Xăng / Dầu'}</span></td>
+                <td class="text-end fw-semibold">${formatVolume(inv.so_luong)}</td>
+                <td class="text-end text-muted small">${inv.don_gia ? Number(inv.don_gia).toLocaleString('vi-VN') : ''}</td>
+                <td class="text-end fw-bold text-success">${formatCurrency(inv.tong_tien)}</td>
+                <td><div class="text-truncate small" style="max-width: 200px;" title="${inv.dia_chi_ban || inv.ben_ban}">${inv.dia_chi_ban || inv.ben_ban}</div></td>
+                <td class="text-center"><code class="small text-danger">${inv.fkey || ''}</code></td>
+                <td class="text-center">${actionHtml}</td>
+            </tr>
+        `;
+    });
+    tbody.innerHTML = rows;
+}
+
+function filterInvoices() {
+    const q = (document.getElementById("searchInput").value || "").toLowerCase().trim();
+    const selectedPlate = document.getElementById("vehicleFilter").value;
+    const selectedFuel = document.getElementById("fuelFilter").value;
+
+    const filtered = rawInvoices.filter(inv => {
+        if (selectedPlate && inv.bien_so !== selectedPlate) return false;
+        if (selectedFuel && inv.ten_hang !== selectedFuel) return false;
+        if (!q) return true;
+
+        return (inv.bien_so && inv.bien_so.toLowerCase().includes(q)) ||
+               (inv.so_hd && inv.so_hd.toLowerCase().includes(q)) ||
+               (inv.ky_hieu && inv.ky_hieu.toLowerCase().includes(q)) ||
+               (inv.ten_hang && inv.ten_hang.toLowerCase().includes(q)) ||
+               (inv.dia_chi_ban && inv.dia_chi_ban.toLowerCase().includes(q)) ||
+               (inv.ben_ban && inv.ben_ban.toLowerCase().includes(q)) ||
+               (inv.ngay_hd && inv.ngay_hd.toLowerCase().includes(q)) ||
+               (inv.fkey && inv.fkey.toLowerCase().includes(q));
+    });
+
+    renderData(filtered);
+}
+
+function resetFilters() {
+    document.getElementById("searchInput").value = "";
+    document.getElementById("vehicleFilter").value = "";
+    document.getElementById("fuelFilter").value = "";
+    renderData(rawInvoices);
+}
+
+function openPdfModal(pdfUrl, soHd) {
+    document.getElementById("pdfModalTitle").textContent = `Hóa Đơn Số: ${soHd}`;
+    document.getElementById("pdfFrame").src = pdfUrl;
+    document.getElementById("btnOpenNewTab").href = pdfUrl;
+    const modal = new bootstrap.Modal(document.getElementById("pdfModal"));
+    modal.show();
+}
+
+document.addEventListener("DOMContentLoaded", initData);
+</script>
+</body>
+</html>
