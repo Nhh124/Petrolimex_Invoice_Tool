@@ -80,6 +80,8 @@ class ExcelManager:
                 fkey = str(row[17] or '').strip()
                 if so_hd:
                     existing_keys.add(f"{ky_hieu}_{so_hd}")
+                    existing_keys.add(f"{ky_hieu}_{so_hd.lstrip('0')}")
+                    existing_keys.add(f"{ky_hieu}_{so_hd.zfill(8)}")
                 if fkey:
                     existing_keys.add(fkey)
         wb.close()

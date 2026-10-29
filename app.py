@@ -163,12 +163,17 @@ def get_status():
 
 @app.route('/api/mailboxes')
 def get_mailboxes():
+    default_boxes = ['vantai povina', 'Phòng kế toán', 'all']
     try:
-        reader = OutlookReader()
-        mbs = reader.get_mailboxes()
-        return jsonify({'status': 'success', 'mailboxes': mbs})
-    except Exception as e:
-        return jsonify({'status': 'error', 'message': str(e), 'mailboxes': ['vantai povina', 'Phòng kế toán']})
+        import win32com.client
+        app_obj = win32com.client.GetActiveObject('Outlook.Application')
+        ns = app_obj.GetNamespace('MAPI')
+        mbs = [f.Name for f in ns.Folders]
+        if mbs:
+            return jsonify({'status': 'success', 'mailboxes': mbs})
+    except Exception:
+        pass
+    return jsonify({'status': 'success', 'mailboxes': default_boxes})
 
 @app.route('/api/test-imap', methods=['POST'])
 def test_imap():

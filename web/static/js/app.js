@@ -188,7 +188,11 @@ function testImapConnection() {
         if (d.status === "success") {
             alert("✓ " + d.message);
         } else {
-            alert("✗ " + d.message);
+            let msg = d.message || "";
+            if (msg.includes("Basic authentication is disabled")) {
+                msg = "Máy chủ Microsoft 365 của công ty (@povina.com.vn) đã tắt tính năng đăng nhập mật khẩu trực tiếp (Basic Authentication) theo chính sách bảo mật của Microsoft.\n\n-> Vui lòng chuyển sang chọn 'Ứng dụng Outlook trên máy' để quét trực tiếp mà không cần nhập mật khẩu!";
+            }
+            alert("✗ " + msg);
         }
     })
     .catch(err => {

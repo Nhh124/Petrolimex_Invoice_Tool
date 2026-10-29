@@ -25,9 +25,18 @@ class PetrolimexInvoiceManager:
     def sync_to_github(self, log_callback=None):
         """Tự động commit và push dữ liệu mới lên GitHub Pages"""
         def log(msg):
-            print(msg)
+            try:
+                print(msg)
+            except Exception:
+                try:
+                    print(str(msg).encode('ascii', errors='replace').decode('ascii'))
+                except Exception:
+                    pass
             if log_callback:
-                log_callback(msg)
+                try:
+                    log_callback(msg)
+                except Exception:
+                    pass
 
         git_exe = r"C:\Users\haiho\AppData\Local\GitHubDesktop\app-3.6.5\resources\app\git\cmd\git.exe"
         if not os.path.exists(git_exe):
@@ -78,9 +87,18 @@ class PetrolimexInvoiceManager:
         - email_user, email_pass, email_server: Thông tin đăng nhập trực tiếp hòm thư qua IMAP
         """
         def log(msg):
-            print(msg)
+            try:
+                print(msg)
+            except Exception:
+                try:
+                    print(str(msg).encode('ascii', errors='replace').decode('ascii'))
+                except Exception:
+                    pass
             if log_callback:
-                log_callback(msg)
+                try:
+                    log_callback(msg)
+                except Exception:
+                    pass
 
         log("=" * 60)
         log(f"BẮT ĐẦU ĐỒNG BỘ HÓA ĐƠN PETROLIMEX - {datetime.now().strftime('%d/%m/%Y %H:%M:%S')}")
@@ -117,7 +135,8 @@ class PetrolimexInvoiceManager:
                     limit=limit,
                     time_filter=time_filter,
                     start_date=start_date,
-                    end_date=end_date
+                    end_date=end_date,
+                    log_cb=log
                 )
         except Exception as e:
             log(f"LỖI KHI ĐỌC EMAIL: {e}")
