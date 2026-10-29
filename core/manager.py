@@ -89,7 +89,8 @@ class PetrolimexInvoiceManager:
 
         # 1. Đọc danh sách đã có trong Excel để không quét trùng
         existing_keys = self.excel_mgr.get_existing_invoices()
-        log(f"Dữ liệu hiện tại trong Excel: {len(existing_keys)} hóa đơn đã lưu.")
+        inv_count = self.excel_mgr.get_invoice_count()
+        log(f"Dữ liệu hiện tại trong Excel: {inv_count} hóa đơn đã lưu.")
 
         # 2. Đọc mail từ Outlook theo bộ lọc
         try:
@@ -166,6 +167,13 @@ class PetrolimexInvoiceManager:
             # Cập nhật từng hóa đơn vào Excel ngay lập tức
             self.excel_mgr.append_invoices([parsed])
             log(f"Đã lưu vào Excel: Số HĐ {parsed['so_hd']} - Xe {parsed.get('bien_so_xe','')} - {parsed.get('ten_hang','')} - {parsed.get('tong_tien_tt',0):,.0f} VNĐ")
+
+            # Cập nhật JSON theo thời gian thực mỗi 5 hóa đơn
+            if len(processed_invoices) % 5 == 0:
+                try:
+                    export_excel_to_json(self.excel_path, self.json_path, self.pdf_dir, self.xml_dir)
+                except Exception:
+                    pass
 
         # 4. Xuất dữ liệu sang JSON cho Web tĩnh GitHub Pages
         export_excel_to_json(self.excel_path, self.json_path, self.pdf_dir, self.xml_dir)

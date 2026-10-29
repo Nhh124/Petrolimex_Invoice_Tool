@@ -85,6 +85,19 @@ class ExcelManager:
         wb.close()
         return existing_keys
 
+    def get_invoice_count(self):
+        """Lấy số lượng dòng hóa đơn thực tế trong file Excel"""
+        if not os.path.exists(self.excel_path):
+            return 0
+        try:
+            wb = openpyxl.load_workbook(self.excel_path, read_only=True)
+            ws = wb.active
+            count = max(0, ws.max_row - 1)
+            wb.close()
+            return count
+        except Exception:
+            return 0
+
     def append_invoices(self, invoice_list):
         """
         Ghi thêm danh sách hóa đơn vào file Excel, tự động bỏ qua các hóa đơn đã tồn tại.

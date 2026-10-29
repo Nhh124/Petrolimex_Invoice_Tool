@@ -147,7 +147,17 @@ class OutlookReader:
             except Exception:
                 pass
 
-            total_items = items.Count
+            # Tối ưu tốc độ: Lọc trực tiếp bằng DASL Restrict của Outlook
+            target_items = items
+            try:
+                dasl = '@SQL="urn:schemas:httpmail:subject" LIKE \'%Petrolimex%\' OR "urn:schemas:httpmail:fromemail" LIKE \'%Petrolimex%\' OR "urn:schemas:httpmail:subject" LIKE \'%Hóa đơn%\' OR "urn:schemas:httpmail:subject" LIKE \'%Hoa don%\''
+                restricted = items.Restrict(dasl)
+                if restricted and restricted.Count > 0:
+                    target_items = restricted
+            except Exception:
+                pass
+
+            total_items = target_items.Count
             print(f"Bắt đầu quét hòm thư '{folder_title}' ({total_items} thư)...")
 
             for i in range(1, total_items + 1):
@@ -155,8 +165,11 @@ class OutlookReader:
                     print(f"Đã đạt giới hạn tối đa {limit} hóa đơn.")
                     return results
 
+                if i % 50 == 0:
+                    print(f"  -> Đang quét thư [{i}/{total_items}]...")
+
                 try:
-                    item = items.Item(i)
+                    item = target_items.Item(i)
                     received_time = getattr(item, 'ReceivedTime', None)
 
                     # Kiểm tra lọc theo thời gian

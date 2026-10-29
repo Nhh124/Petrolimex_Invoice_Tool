@@ -1,5 +1,7 @@
 import os
 import sys
+import re
+import subprocess
 import threading
 from flask import Flask, render_template, jsonify, request, send_from_directory, redirect, url_for, session
 import openpyxl
@@ -102,11 +104,15 @@ def read_excel_data():
             ben_mua = r[16] if len(r) > 16 else ""
             fkey = r[17] if len(r) > 17 else ""
 
-            safe_kh = str(ky_hieu).replace('/', '_')
-            safe_shd = str(so_hd)
-            safe_fkey = str(fkey).replace('*', '_')
-            pdf_filename = f"HD_{safe_kh}_{safe_shd}_{safe_fkey}.pdf"
-            has_pdf = os.path.exists(os.path.join(manager.pdf_dir, pdf_filename))
+            # Tìm file PDF thực tế trong thư mục invoices_pdf
+            safe_fkey = re.sub(r'[^\w\-]', '_', str(fkey or ''))
+            pdf_filename = ""
+            if safe_fkey and os.path.exists(manager.pdf_dir):
+                target_suffix = f"_{safe_fkey}.pdf"
+                for fn in os.listdir(manager.pdf_dir):
+                    if fn.endswith(target_suffix):
+                        pdf_filename = fn
+                        break
 
             invoices.append({
                 'stt': stt,
@@ -171,31 +177,46 @@ def start_sync():
 
     data = request.json or {}
     mailbox = data.get('mailbox', 'vantai povina')
-    time_filter = data.get('time_filter', 'month')
+    time_filter = data.get('time_filter', 'all')
     start_date = data.get('start_date', None)
     end_date = data.get('end_date', None)
     limit = int(data.get('limit', 0))
-    limit_val = None if limit <= 0 else limit
 
     def run_worker():
+        import subprocess
         sync_state['is_running'] = True
-        sync_state['logs'] = []
-        def log_cb(msg):
-            sync_state['logs'].append(msg)
-            if len(sync_state['logs']) > 300:
-                sync_state['logs'].pop(0)
+        sync_state['logs'] = ["Khởi chạy tiến trình quét hóa đơn..."]
+
+        cmd = [
+            sys.executable, "-u", os.path.join(BASE_DIR, "cli.py"),
+            "--mailbox", str(mailbox),
+            "--filter", str(time_filter),
+            "--limit", str(limit)
+        ]
+        if start_date:
+            cmd.extend(["--start-date", str(start_date)])
+        if end_date:
+            cmd.extend(["--end-date", str(end_date)])
 
         try:
-            res = manager.run_sync(
-                mailbox_name=mailbox,
-                limit=limit_val,
-                time_filter=time_filter,
-                start_date=start_date,
-                end_date=end_date,
-                auto_push_github=True,
-                log_callback=log_cb
+            process = subprocess.Popen(
+                cmd,
+                cwd=BASE_DIR,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                text=True,
+                encoding='utf-8',
+                errors='replace',
+                bufsize=1
             )
-            sync_state['last_result'] = res
+            for line in iter(process.stdout.readline, ''):
+                cleaned = line.rstrip()
+                if cleaned:
+                    sync_state['logs'].append(cleaned)
+                    if len(sync_state['logs']) > 500:
+                        sync_state['logs'].pop(0)
+            process.wait()
+            sync_state['last_result'] = {'status': 'success' if process.returncode == 0 else 'error'}
         except Exception as e:
             sync_state['logs'].append(f"Lỗi ngoại lệ: {e}")
         finally:

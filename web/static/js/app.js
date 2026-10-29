@@ -190,7 +190,25 @@ function startSync() {
 function startLogPolling() {
     if (syncInterval) clearInterval(syncInterval);
 
+    let pollCounter = 0;
     syncInterval = setInterval(() => {
+        pollCounter++;
+        // Cập nhật lại danh sách hóa đơn hiển thị mỗi 6 giây trong khi đang tải
+        if (pollCounter % 4 === 0) {
+            fetch("/api/status")
+                .then(r => r.json())
+                .then(d => {
+                    if (d && d.invoices) {
+                        document.getElementById("kpiCount").textContent = d.total_count || 0;
+                        document.getElementById("kpiAmount").textContent = formatCurrency(d.total_amount);
+                        document.getElementById("kpiVolume").textContent = formatVolume(d.total_volume);
+                        allInvoices = d.invoices;
+                        renderTable(allInvoices);
+                    }
+                })
+                .catch(() => {});
+        }
+
         fetch("/api/logs")
             .then(res => res.json())
             .then(data => {
