@@ -42,7 +42,25 @@ class PetrolimexInvoiceManager:
 
             commit_msg = f"Cap nhat hoa don Petrolimex {datetime.now().strftime('%d/%m/%Y %H:%M')}"
             subprocess.run([git_exe, "commit", "-m", commit_msg], cwd=self.base_dir, capture_output=True)
+
+            token = None
+            try:
+                import win32cred
+                cred = win32cred.CredRead('GitHub - https://api.github.com/Nhh124', win32cred.CRED_TYPE_GENERIC)
+                token = cred['CredentialBlob'].decode('utf-16') if b'\x00' in cred['CredentialBlob'] else cred['CredentialBlob'].decode('utf-8')
+            except Exception:
+                pass
+
+            if token:
+                auth_url = f"https://{token}@github.com/Nhh124/Petrolimex_Invoice_Tool.git"
+                subprocess.run([git_exe, "remote", "set-url", "origin", auth_url], cwd=self.base_dir, capture_output=True)
+
             push_res = subprocess.run([git_exe, "push", "origin", "main"], cwd=self.base_dir, capture_output=True, text=True)
+
+            if token:
+                clean_url = "https://github.com/Nhh124/Petrolimex_Invoice_Tool.git"
+                subprocess.run([git_exe, "remote", "set-url", "origin", clean_url], cwd=self.base_dir, capture_output=True)
+
             if push_res.returncode == 0:
                 log("Đã cập nhật Web GitHub Pages thành công!")
             else:
@@ -50,9 +68,12 @@ class PetrolimexInvoiceManager:
         except Exception as e:
             log(f"Cảnh báo đồng bộ GitHub: {e}")
 
-    def run_sync(self, mailbox_name="vantai povina", limit=20, auto_push_github=True, log_callback=None):
+    def run_sync(self, mailbox_name="vantai povina", limit=None, time_filter="all", start_date=None, end_date=None, auto_push_github=True, log_callback=None):
         """
         Tiến hành quy trình đồng bộ hóa đơn từ Outlook -> Tải Portal -> Xuất Excel -> Cập nhật Web GitHub Pages
+        - time_filter: 'all', 'today', 'week', 'month', 'last_month', 'custom'
+        - start_date, end_date: chuỗi YYYY-MM-DD
+        - limit: số lượng hóa đơn cần tải (None hoặc 0 = không giới hạn)
         """
         def log(msg):
             print(msg)
@@ -61,17 +82,25 @@ class PetrolimexInvoiceManager:
 
         log("=" * 60)
         log(f"BẮT ĐẦU ĐỒNG BỘ HÓA ĐƠN PETROLIMEX - {datetime.now().strftime('%d/%m/%Y %H:%M:%S')}")
-        log(f"Hộp thư: {mailbox_name} | Giới hạn quét: {limit} email gần nhất")
+        log(f"Hộp thư: {mailbox_name} | Bộ lọc thời gian: {time_filter}")
+        if time_filter == "custom":
+            log(f"Khoảng ngày: Từ {start_date or 'bắt đầu'} đến {end_date or 'hiện tại'}")
         log("=" * 60)
 
         # 1. Đọc danh sách đã có trong Excel để không quét trùng
         existing_keys = self.excel_mgr.get_existing_invoices()
         log(f"Dữ liệu hiện tại trong Excel: {len(existing_keys)} hóa đơn đã lưu.")
 
-        # 2. Đọc mail từ Outlook
+        # 2. Đọc mail từ Outlook theo bộ lọc
         try:
             reader = OutlookReader()
-            emails = reader.fetch_petrolimex_emails(mailbox_name=mailbox_name, limit=limit)
+            emails = reader.fetch_petrolimex_emails(
+                mailbox_name=mailbox_name,
+                limit=limit,
+                time_filter=time_filter,
+                start_date=start_date,
+                end_date=end_date
+            )
         except Exception as e:
             log(f"LỖI KHI KẾT NỐI OUTLOOK: {e}")
             return {
@@ -123,7 +152,6 @@ class PetrolimexInvoiceManager:
             parsed['pdf_path'] = res.get('pdf_path', '')
             parsed['xml_path'] = res.get('xml_path', '')
 
-            # Nếu XML thiếu một số trường, lấy dự phòng từ email
             if not parsed.get('mau_so'):
                 parsed['mau_so'] = em.get('mau_so', '')
             if not parsed.get('ky_hieu'):

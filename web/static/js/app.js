@@ -16,6 +16,16 @@ function formatVolume(val) {
     return Number(val).toLocaleString("vi-VN", { minimumFractionDigits: 2, maximumFractionDigits: 3 }) + " L";
 }
 
+function toggleCustomDates() {
+    const val = document.getElementById("selectTimeFilter").value;
+    const row = document.getElementById("customDateRow");
+    if (val === "custom") {
+        row.classList.remove("d-none");
+    } else {
+        row.classList.add("d-none");
+    }
+}
+
 function loadMailboxes() {
     fetch("/api/mailboxes")
         .then(res => res.json())
@@ -39,8 +49,15 @@ function loadMailboxes() {
 
 function loadData() {
     fetch("/api/status")
-        .then(res => res.json())
+        .then(res => {
+            if (res.status === 401) {
+                window.location.href = "/login";
+                return;
+            }
+            return res.json();
+        })
         .then(data => {
+            if (!data) return;
             document.getElementById("kpiCount").textContent = data.total_count || 0;
             document.getElementById("kpiAmount").textContent = formatCurrency(data.total_amount);
             document.getElementById("kpiVolume").textContent = formatVolume(data.total_volume);
@@ -68,7 +85,7 @@ function renderTable(invoices) {
                 <td colspan="12" class="text-center py-5 text-muted">
                     <i class="fa-solid fa-folder-open fs-2 mb-2 text-secondary"></i>
                     <div>Chưa có dữ liệu hóa đơn nào trong hệ thống.</div>
-                    <div class="small">Nhấn <b>"Bắt Đầu Quét & Tải Hóa Đơn"</b> để thu thập tự động từ Outlook.</div>
+                    <div class="small">Nhấn <b>"Bắt Đầu Quét"</b> để thu thập tự động từ Outlook.</div>
                 </td>
             </tr>
         `;
@@ -129,20 +146,29 @@ function filterTable() {
 
 function startSync() {
     const mailbox = document.getElementById("selectMailbox").value;
+    const timeFilter = document.getElementById("selectTimeFilter").value;
+    const startDate = document.getElementById("startDate").value;
+    const endDate = document.getElementById("endDate").value;
     const limit = document.getElementById("selectLimit").value;
     const btn = document.getElementById("btnSync");
 
     btn.disabled = true;
-    btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin me-1"></i> Đang Xử Lý...`;
+    btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin me-1"></i> Đang Quét...`;
 
     const container = document.getElementById("syncProgressContainer");
     container.classList.remove("d-none");
-    document.getElementById("logBox").innerHTML = "<div class='text-warning'>Khởi động tiến trình đồng bộ...</div>";
+    document.getElementById("logBox").innerHTML = "<div class='text-warning'>Đang khởi động tiến trình đồng bộ...</div>";
 
     fetch("/api/sync", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ mailbox: mailbox, limit: limit })
+        body: JSON.stringify({
+            mailbox: mailbox,
+            time_filter: timeFilter,
+            start_date: startDate,
+            end_date: endDate,
+            limit: limit
+        })
     })
     .then(res => res.json())
     .then(data => {
@@ -151,13 +177,13 @@ function startSync() {
         } else {
             alert(data.message || "Không thể khởi động đồng bộ!");
             btn.disabled = false;
-            btn.innerHTML = `<i class="fa-solid fa-cloud-arrow-down me-1"></i> Bắt Đầu Quét & Tải Hóa Đơn`;
+            btn.innerHTML = `<i class="fa-solid fa-cloud-arrow-down me-1"></i> Bắt Đầu Quét`;
         }
     })
     .catch(err => {
         alert("Lỗi kết nối tới máy chủ: " + err);
         btn.disabled = false;
-        btn.innerHTML = `<i class="fa-solid fa-cloud-arrow-down me-1"></i> Bắt Đầu Quét & Tải Hóa Đơn`;
+        btn.innerHTML = `<i class="fa-solid fa-cloud-arrow-down me-1"></i> Bắt Đầu Quét`;
     });
 }
 
@@ -180,10 +206,10 @@ function startLogPolling() {
 
                     const btn = document.getElementById("btnSync");
                     btn.disabled = false;
-                    btn.innerHTML = `<i class="fa-solid fa-cloud-arrow-down me-1"></i> Bắt Đầu Quét & Tải Hóa Đơn`;
+                    btn.innerHTML = `<i class="fa-solid fa-cloud-arrow-down me-1"></i> Bắt Đầu Quét`;
 
                     document.getElementById("syncStatusText").innerHTML = `
-                        <i class="fa-solid fa-check text-success me-1"></i> Đồng bộ hoàn tất!
+                        <i class="fa-solid fa-check text-success me-1"></i> Quét & đồng bộ hoàn tất!
                     `;
                     document.getElementById("syncProgressBar").classList.remove("progress-bar-animated");
 

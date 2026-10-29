@@ -1,8 +1,7 @@
 import os
 import sys
 import threading
-import subprocess
-from flask import Flask, render_template, jsonify, request, send_from_directory
+from flask import Flask, render_template, jsonify, request, send_from_directory, redirect, url_for, session
 import openpyxl
 
 sys.stdout.reconfigure(encoding='utf-8')
@@ -12,12 +11,14 @@ sys.path.insert(0, BASE_DIR)
 
 from core.manager import PetrolimexInvoiceManager
 from core.outlook_reader import OutlookReader
+from core.auth import verify_login, DEFAULT_USER
 
 app = Flask(
     __name__,
     template_folder=os.path.join(BASE_DIR, "web", "templates"),
     static_folder=os.path.join(BASE_DIR, "web", "static")
 )
+app.secret_key = os.urandom(32)
 
 manager = PetrolimexInvoiceManager(BASE_DIR)
 
@@ -27,6 +28,43 @@ sync_state = {
     'logs': [],
     'last_result': None
 }
+
+@app.before_request
+def check_auth():
+    # Các route công khai không cần đăng nhập
+    public_endpoints = ['login', 'static']
+    if request.endpoint and any(request.endpoint.startswith(p) for p in public_endpoints):
+        return None
+
+    if not session.get('logged_in'):
+        if request.path.startswith('/api/'):
+            return jsonify({'status': 'unauthorized', 'message': 'Vui lòng đăng nhập'}), 401
+        return redirect(url_for('login'))
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if session.get('logged_in'):
+        return redirect(url_for('index'))
+
+    error = None
+    username = ""
+    if request.method == 'POST':
+        username = request.form.get('username', '').strip()
+        password = request.form.get('password', '')
+
+        if verify_login(username, password):
+            session['logged_in'] = True
+            session['user'] = username
+            return redirect(url_for('index'))
+        else:
+            error = "Tên tài khoản hoặc mật khẩu không chính xác!"
+
+    return render_template('login.html', error=error, username=username)
+
+@app.route('/logout')
+def logout():
+    session.clear()
+    return redirect(url_for('login'))
 
 def read_excel_data():
     excel_path = manager.excel_path
@@ -64,7 +102,6 @@ def read_excel_data():
             ben_mua = r[16] if len(r) > 16 else ""
             fkey = r[17] if len(r) > 17 else ""
 
-            # File name
             safe_kh = str(ky_hieu).replace('/', '_')
             safe_shd = str(so_hd)
             safe_fkey = str(fkey).replace('*', '_')
@@ -93,7 +130,6 @@ def read_excel_data():
                 'pdf_filename': pdf_filename if has_pdf else ''
             })
 
-        # Mới nhất xếp trước
         invoices.reverse()
         return invoices
     except Exception as e:
@@ -102,7 +138,7 @@ def read_excel_data():
 
 @app.route('/')
 def index():
-    return render_template('index.html')
+    return render_template('index.html', user=session.get('user', DEFAULT_USER))
 
 @app.route('/api/status')
 def get_status():
@@ -135,19 +171,30 @@ def start_sync():
 
     data = request.json or {}
     mailbox = data.get('mailbox', 'vantai povina')
-    limit = int(data.get('limit', 20))
-    limit_val = None if limit == 0 else limit
+    time_filter = data.get('time_filter', 'month')
+    start_date = data.get('start_date', None)
+    end_date = data.get('end_date', None)
+    limit = int(data.get('limit', 0))
+    limit_val = None if limit <= 0 else limit
 
     def run_worker():
         sync_state['is_running'] = True
         sync_state['logs'] = []
         def log_cb(msg):
             sync_state['logs'].append(msg)
-            if len(sync_state['logs']) > 200:
+            if len(sync_state['logs']) > 300:
                 sync_state['logs'].pop(0)
 
         try:
-            res = manager.run_sync(mailbox_name=mailbox, limit=limit_val, log_callback=log_cb)
+            res = manager.run_sync(
+                mailbox_name=mailbox,
+                limit=limit_val,
+                time_filter=time_filter,
+                start_date=start_date,
+                end_date=end_date,
+                auto_push_github=True,
+                log_callback=log_cb
+            )
             sync_state['last_result'] = res
         except Exception as e:
             sync_state['logs'].append(f"Lỗi ngoại lệ: {e}")
