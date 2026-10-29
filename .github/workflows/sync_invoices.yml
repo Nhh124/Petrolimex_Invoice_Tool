@@ -1,0 +1,77 @@
+name: Tự Động Quét Hóa Đơn Petrolimex (Cloud)
+
+on:
+  workflow_dispatch:
+    inputs:
+      email_user:
+        description: 'Tài khoản Email (ví dụ: vantai@povina.com.vn)'
+        required: true
+        default: 'vantai@povina.com.vn'
+      time_filter:
+        description: 'Bộ lọc thời gian (all, month, week, today)'
+        required: true
+        default: 'all'
+        type: choice
+        options:
+          - all
+          - month
+          - week
+          - today
+      limit:
+        description: 'Giới hạn số lượng (0 = không giới hạn)'
+        required: false
+        default: '0'
+
+  # Chạy tự động mỗi ngày lúc 01:00 UTC (08:00 sáng giờ Việt Nam)
+  schedule:
+    - cron: '0 1 * * *'
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout mã nguồn
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Cài đặt Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Cài đặt thư viện phụ thuộc
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          playwright install chromium --with-deps
+
+      - name: Thực thi quét hóa đơn Petrolimex
+        env:
+          EMAIL_USER: ${{ inputs.email_user || secrets.MAIL_USER }}
+          EMAIL_PASS: ${{ secrets.MAIL_PASS }}
+          FILTER: ${{ inputs.time_filter || 'all' }}
+          LIMIT: ${{ inputs.limit || '0' }}
+        run: |
+          if [ -z "$EMAIL_USER" ] || [ -z "$EMAIL_PASS" ]; then
+            echo "Vui lòng cấu hình Secret MAIL_USER và MAIL_PASS trong Settings > Secrets của GitHub Repository!"
+            exit 1
+          fi
+          python cli.py --email-user "$EMAIL_USER" --email-pass "$EMAIL_PASS" --filter "$FILTER" --limit "$LIMIT" --no-push
+
+      - name: Commit và cập nhật lên GitHub Pages
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "Petrolimex Sync Bot"
+          git add data/ invoices_pdf/ invoices_xml/
+          if git diff --staged --quiet; then
+            echo "Không có hóa đơn mới nào cần cập nhật."
+          else
+            git commit -m "Tự động đồng bộ hóa đơn Petrolimex từ Cloud [skip ci]"
+            git push origin main
+          fi

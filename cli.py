@@ -17,6 +17,9 @@ def main():
     parser.add_argument("--start-date", default=None, help="Ngày bắt đầu (YYYY-MM-DD) khi chọn --filter custom")
     parser.add_argument("--end-date", default=None, help="Ngày kết thúc (YYYY-MM-DD) khi chọn --filter custom")
     parser.add_argument("--limit", type=int, default=0, help="Giới hạn số lượng email cần xử lý (mặc định: 0 = không giới hạn)")
+    parser.add_argument("--email-user", default=None, help="Tài khoản email đăng nhập trực tiếp qua IMAP (ví dụ: user@povina.com.vn)")
+    parser.add_argument("--email-pass", default=None, help="Mật khẩu email / App Password khi dùng IMAP")
+    parser.add_argument("--email-server", default=None, help="Địa chỉ máy chủ IMAP (mặc định tự nhận diện)")
     parser.add_argument("--no-push", action="store_true", help="Không tự động push lên GitHub sau khi đồng bộ")
     parser.add_argument("--open-excel", action="store_true", help="Tự động mở file Excel sau khi hoàn thành")
 
@@ -31,7 +34,10 @@ def main():
         time_filter=args.filter,
         start_date=args.start_date,
         end_date=args.end_date,
-        auto_push_github=not args.no_push
+        auto_push_github=not args.no_push,
+        email_user=args.email_user,
+        email_pass=args.email_pass,
+        email_server=args.email_server
     )
 
     if args.open_excel and os.path.exists(result.get('excel_path', '')):

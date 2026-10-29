@@ -170,6 +170,27 @@ def get_mailboxes():
     except Exception as e:
         return jsonify({'status': 'error', 'message': str(e), 'mailboxes': ['vantai povina', 'Phòng kế toán']})
 
+@app.route('/api/test-imap', methods=['POST'])
+def test_imap():
+    data = request.json or {}
+    email_user = data.get('email_user', '').strip()
+    email_pass = data.get('email_pass', '')
+    email_server = data.get('email_server', '').strip() or None
+
+    if not email_user or not email_pass:
+        return jsonify({'status': 'error', 'message': 'Vui lòng nhập đầy đủ email và mật khẩu!'})
+
+    try:
+        from core.imap_reader import IMAPReader
+        reader = IMAPReader(username=email_user, password=email_pass, server=email_server)
+        ok, msg = reader.test_connection()
+        if ok:
+            return jsonify({'status': 'success', 'message': f'Kết nối thành công tới máy chủ ({reader.server})!'})
+        else:
+            return jsonify({'status': 'error', 'message': msg})
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': f'Lỗi kết nối: {e}'})
+
 @app.route('/api/sync', methods=['POST'])
 def start_sync():
     if sync_state['is_running']:
@@ -181,6 +202,9 @@ def start_sync():
     start_date = data.get('start_date', None)
     end_date = data.get('end_date', None)
     limit = int(data.get('limit', 0))
+    email_user = data.get('email_user', '').strip()
+    email_pass = data.get('email_pass', '')
+    email_server = data.get('email_server', '').strip()
 
     def run_worker():
         import subprocess
@@ -197,6 +221,12 @@ def start_sync():
             cmd.extend(["--start-date", str(start_date)])
         if end_date:
             cmd.extend(["--end-date", str(end_date)])
+        if email_user:
+            cmd.extend(["--email-user", str(email_user)])
+        if email_pass:
+            cmd.extend(["--email-pass", str(email_pass)])
+        if email_server:
+            cmd.extend(["--email-server", str(email_server)])
 
         try:
             process = subprocess.Popen(

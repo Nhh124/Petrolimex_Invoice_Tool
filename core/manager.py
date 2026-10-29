@@ -4,6 +4,7 @@ import subprocess
 from datetime import datetime
 
 from .outlook_reader import OutlookReader
+from .imap_reader import IMAPReader
 from .portal_downloader import PortalDownloader
 from .invoice_parser import parse_invoice_xml
 from .excel_manager import ExcelManager
@@ -68,12 +69,13 @@ class PetrolimexInvoiceManager:
         except Exception as e:
             log(f"Cảnh báo đồng bộ GitHub: {e}")
 
-    def run_sync(self, mailbox_name="vantai povina", limit=None, time_filter="all", start_date=None, end_date=None, auto_push_github=True, log_callback=None):
+    def run_sync(self, mailbox_name="vantai povina", limit=None, time_filter="all", start_date=None, end_date=None, auto_push_github=True, log_callback=None, email_user=None, email_pass=None, email_server=None):
         """
-        Tiến hành quy trình đồng bộ hóa đơn từ Outlook -> Tải Portal -> Xuất Excel -> Cập nhật Web GitHub Pages
+        Tiến hành quy trình đồng bộ hóa đơn từ Outlook hoặc IMAP Server -> Tải Portal -> Xuất Excel -> Cập nhật Web GitHub Pages
         - time_filter: 'all', 'today', 'week', 'month', 'last_month', 'custom'
         - start_date, end_date: chuỗi YYYY-MM-DD
         - limit: số lượng hóa đơn cần tải (None hoặc 0 = không giới hạn)
+        - email_user, email_pass, email_server: Thông tin đăng nhập trực tiếp hòm thư qua IMAP
         """
         def log(msg):
             print(msg)
@@ -82,7 +84,10 @@ class PetrolimexInvoiceManager:
 
         log("=" * 60)
         log(f"BẮT ĐẦU ĐỒNG BỘ HÓA ĐƠN PETROLIMEX - {datetime.now().strftime('%d/%m/%Y %H:%M:%S')}")
-        log(f"Hộp thư: {mailbox_name} | Bộ lọc thời gian: {time_filter}")
+        if email_user:
+            log(f"Chế độ: Đăng nhập trực tiếp máy chủ Email IMAP ({email_user}) | Bộ lọc: {time_filter}")
+        else:
+            log(f"Chế độ: Đọc từ Outlook ứng dụng | Hộp thư: {mailbox_name} | Bộ lọc: {time_filter}")
         if time_filter == "custom":
             log(f"Khoảng ngày: Từ {start_date or 'bắt đầu'} đến {end_date or 'hiện tại'}")
         log("=" * 60)
@@ -92,18 +97,30 @@ class PetrolimexInvoiceManager:
         inv_count = self.excel_mgr.get_invoice_count()
         log(f"Dữ liệu hiện tại trong Excel: {inv_count} hóa đơn đã lưu.")
 
-        # 2. Đọc mail từ Outlook theo bộ lọc
+        # 2. Đọc mail theo phương thức người dùng chọn
         try:
-            reader = OutlookReader()
-            emails = reader.fetch_petrolimex_emails(
-                mailbox_name=mailbox_name,
-                limit=limit,
-                time_filter=time_filter,
-                start_date=start_date,
-                end_date=end_date
-            )
+            if email_user and email_pass:
+                log(f"Đang kết nối tới máy chủ hòm thư ({email_server or 'Tự động'})...")
+                reader = IMAPReader(username=email_user, password=email_pass, server=email_server)
+                emails = reader.fetch_petrolimex_emails(
+                    folder="INBOX",
+                    limit=limit,
+                    time_filter=time_filter,
+                    start_date=start_date,
+                    end_date=end_date,
+                    log_cb=log
+                )
+            else:
+                reader = OutlookReader()
+                emails = reader.fetch_petrolimex_emails(
+                    mailbox_name=mailbox_name,
+                    limit=limit,
+                    time_filter=time_filter,
+                    start_date=start_date,
+                    end_date=end_date
+                )
         except Exception as e:
-            log(f"LỖI KHI KẾT NỐI OUTLOOK: {e}")
+            log(f"LỖI KHI ĐỌC EMAIL: {e}")
             return {
                 'status': 'error',
                 'message': str(e),
@@ -111,7 +128,7 @@ class PetrolimexInvoiceManager:
                 'total_found': 0
             }
 
-        log(f"Tìm thấy {len(emails)} email hóa đơn Petrolimex trong Outlook.")
+        log(f"Tìm thấy {len(emails)} email hóa đơn Petrolimex hợp lệ.")
 
         # 3. Lọc ra các hóa đơn chưa được xử lý
         pending_emails = []

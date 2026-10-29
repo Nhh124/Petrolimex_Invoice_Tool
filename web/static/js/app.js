@@ -144,13 +144,77 @@ function filterTable() {
     renderTable(filtered);
 }
 
+function toggleSyncSource() {
+    const isImap = document.getElementById("sourceImap").checked;
+    const imapRow = document.getElementById("imapCredentialsRow");
+    const mbCol = document.getElementById("mailboxSelectCol");
+    if (isImap) {
+        imapRow.classList.remove("d-none");
+        mbCol.classList.add("d-none");
+    } else {
+        imapRow.classList.add("d-none");
+        mbCol.classList.remove("d-none");
+    }
+}
+
+function testImapConnection() {
+    const email = (document.getElementById("imapEmail").value || "").trim();
+    const pass = (document.getElementById("imapPassword").value || "").trim();
+    const server = (document.getElementById("imapServer").value || "").trim();
+
+    if (!email || !pass) {
+        alert("Vui lòng điền đầy đủ Địa chỉ Email và Mật khẩu!");
+        return;
+    }
+
+    const btn = event.target.closest("button");
+    const oldHtml = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin me-1"></i> Đang Thử...`;
+
+    fetch("/api/test-imap", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+            email_user: email,
+            email_pass: pass,
+            email_server: server
+        })
+    })
+    .then(r => r.json())
+    .then(d => {
+        btn.disabled = false;
+        btn.innerHTML = oldHtml;
+        if (d.status === "success") {
+            alert("✓ " + d.message);
+        } else {
+            alert("✗ " + d.message);
+        }
+    })
+    .catch(err => {
+        btn.disabled = false;
+        btn.innerHTML = oldHtml;
+        alert("Lỗi kết nối máy chủ: " + err);
+    });
+}
+
 function startSync() {
+    const isImap = document.getElementById("sourceImap").checked;
     const mailbox = document.getElementById("selectMailbox").value;
     const timeFilter = document.getElementById("selectTimeFilter").value;
     const startDate = document.getElementById("startDate").value;
     const endDate = document.getElementById("endDate").value;
     const limit = document.getElementById("selectLimit").value;
     const btn = document.getElementById("btnSync");
+
+    const emailUser = isImap ? (document.getElementById("imapEmail").value || "").trim() : "";
+    const emailPass = isImap ? (document.getElementById("imapPassword").value || "").trim() : "";
+    const emailServer = isImap ? (document.getElementById("imapServer").value || "").trim() : "";
+
+    if (isImap && (!emailUser || !emailPass)) {
+        alert("Vui lòng nhập Email và Mật khẩu trước khi bắt đầu quét!");
+        return;
+    }
 
     btn.disabled = true;
     btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin me-1"></i> Đang Quét...`;
@@ -167,7 +231,10 @@ function startSync() {
             time_filter: timeFilter,
             start_date: startDate,
             end_date: endDate,
-            limit: limit
+            limit: limit,
+            email_user: emailUser,
+            email_pass: emailPass,
+            email_server: emailServer
         })
     })
     .then(res => res.json())

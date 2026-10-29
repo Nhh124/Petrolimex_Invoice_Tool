@@ -6,10 +6,11 @@ from datetime import datetime, timedelta
 
 def _ensure_desktop():
     try:
-        user32 = ctypes.windll.user32
-        hdesk = user32.OpenDesktopW('Default', 0, False, 0x10000000)
-        if hdesk:
-            user32.SetThreadDesktop(hdesk)
+        if hasattr(ctypes, 'windll'):
+            user32 = ctypes.windll.user32
+            hdesk = user32.OpenDesktopW('Default', 0, False, 0x10000000)
+            if hdesk:
+                user32.SetThreadDesktop(hdesk)
     except Exception:
         pass
 
