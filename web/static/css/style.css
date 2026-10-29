@@ -1,0 +1,60 @@
+body {
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    color: #2c3e50;
+}
+
+.card-kpi {
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.card-kpi:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 16px rgba(0,0,0,0.08) !important;
+}
+
+.status-indicator {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    display: inline-block;
+    box-shadow: 0 0 0 2px rgba(25, 135, 84, 0.2);
+}
+
+.custom-table th {
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 0.78rem;
+    letter-spacing: 0.5px;
+    padding: 12px 14px;
+}
+
+.custom-table td {
+    padding: 12px 14px;
+    font-size: 0.88rem;
+}
+
+.log-box {
+    max-height: 160px;
+    overflow-y: auto;
+    font-size: 0.8rem;
+    line-height: 1.4;
+    border: 1px solid #34495e;
+}
+
+.plate-badge {
+    background-color: #f1f5f9;
+    color: #0f172a;
+    border: 1px solid #cbd5e1;
+    font-weight: 700;
+    padding: 3px 8px;
+    border-radius: 4px;
+    letter-spacing: 0.5px;
+}
+
+.fuel-badge {
+    font-weight: 600;
+    color: #b45309;
+    background-color: #fef3c7;
+    padding: 2px 8px;
+    border-radius: 4px;
+}
