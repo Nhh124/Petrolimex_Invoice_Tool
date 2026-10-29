@@ -62,7 +62,21 @@ class OutlookReader:
         import pythoncom
         import win32com.client
         pythoncom.CoInitialize()
-        self.app = win32com.client.Dispatch('Outlook.Application')
+
+        # 1. Thử kết nối trực tiếp vào Outlook đang chạy sẵn (tránh bị kẹt -Embedding)
+        self.app = None
+        try:
+            self.app = win32com.client.GetActiveObject('Outlook.Application')
+        except Exception:
+            pass
+
+        # 2. Nếu chưa có thì khởi tạo mới
+        if not self.app:
+            try:
+                self.app = win32com.client.Dispatch('Outlook.Application')
+            except Exception as e:
+                raise Exception(f"Không thể kết nối Outlook. Vui lòng bật Microsoft Outlook trước: {e}")
+
         self.ns = self.app.GetNamespace('MAPI')
 
     def get_mailboxes(self):

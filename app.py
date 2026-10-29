@@ -133,7 +133,7 @@ def read_excel_data():
                 'dia_chi_ban': str(dia_chi_ban or ''),
                 'ben_mua': str(ben_mua or ''),
                 'fkey': str(fkey or ''),
-                'pdf_filename': pdf_filename if has_pdf else ''
+                'pdf_filename': pdf_filename
             })
 
         invoices.reverse()
